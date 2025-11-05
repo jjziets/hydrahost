@@ -17,7 +17,8 @@ item vga VGA console
 choose --timeout 10000 --default s1 sel || goto menu
 
 # Escape ';' in iPXE with '\;'
-set common_args ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
+# Boot parameters based on Brokkr's working approach
+set common_args boot=casper netboot=url nfsboot=auto ro network ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
 
 :s0
 set cons console=ttyS0,115200n8
