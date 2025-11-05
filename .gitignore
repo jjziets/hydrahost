@@ -1,0 +1,20 @@
+# Environment variables (contains credentials)
+.env
+
+# Internal documentation (contains sensitive information, credentials, IPs)
+internal/
+
+# SOL monitoring logs
+logs/
+sol-output-*.log
+
+# macOS
+.DS_Store
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+

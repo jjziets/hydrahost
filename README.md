@@ -129,6 +129,59 @@ autoinstall/
 
 ---
 
+## 🔧 Bridge Network Configuration (Required for Custom iPXE)
+
+**Important:** For custom iPXE boot to work, the provisioning network must have internet access to download boot files from GitHub.
+
+If you encounter "Network unreachable" errors during iPXE chainload, the bridge servers need a NAT configuration fix.
+
+### Quick Fix
+
+Run this on each bridge server:
+```bash
+sudo ./apply-bridge-nat-fix.sh
+```
+
+### Documentation
+
+* **[QUICK_FIX_SUMMARY.md](QUICK_FIX_SUMMARY.md)** - Executive summary of the issue and fix
+* **[BRIDGE_NAT_FIX.md](BRIDGE_NAT_FIX.md)** - Detailed technical explanation and multiple fix options
+* **[apply-bridge-nat-fix.sh](apply-bridge-nat-fix.sh)** - Automated script to apply the fix
+
+### What This Fixes
+
+The provisioning network (`10.230.12.0/24`) needs NAT/masquerading to access the internet. Without this, iPXE clients cannot download boot scripts from external URLs like GitHub.
+
+---
+
+## 🐛 Debugging & Monitoring
+
+### Monitor Deployment via IPMI SOL
+
+Watch the deployment process in real-time using Serial Over LAN:
+
+```bash
+# 1. Configure IPMI credentials
+cp .env.example .env
+# Edit .env with your IPMI details
+
+# 2. Start monitoring
+./monitor-sol.sh
+
+# 3. In another terminal, tail the logs
+./tail-sol.sh
+```
+
+### Network Diagnostics
+
+Test connectivity to GitHub and verify boot files are accessible:
+
+```bash
+./diagnose-network.sh
+```
+
+---
+
 ## ⚠️ Notes
 
 * This repo must stay **public** so iPXE can fetch kernel/initrd and autoinstall seed.
