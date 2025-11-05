@@ -17,8 +17,8 @@ item vga VGA console
 choose --timeout 10000 --default s1 sel || goto menu
 
 # Escape ';' in iPXE with '\;'
-# Parameters for Ubuntu live server network boot
-set common_args initrd=initrd boot=casper netboot=url ip=dhcp url=${iso_url} fsck.mode=skip autoinstall ds=nocloud-net\;s=${seed_url}
+# Use fetch= to download ISO, toram to load to memory
+set common_args boot=casper fetch=${iso_url} toram ip=dhcp fsck.mode=skip autoinstall ds=nocloud-net\;s=${seed_url}
 
 :s0
 set cons console=ttyS0,115200n8
