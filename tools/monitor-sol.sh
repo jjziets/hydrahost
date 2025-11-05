@@ -76,15 +76,33 @@ sleep 1
 
 echo -e "${GREEN}Activating SOL and logging to file...${NC}"
 echo -e "${YELLOW}Press CTRL+C to stop monitoring${NC}"
+echo -e "${YELLOW}SOL will auto-reconnect if detached (10 second delay)${NC}"
 echo ""
 echo -e "${YELLOW}Tip: In another terminal, run:${NC}"
 echo -e "  tail -f ${LOG_FILE}"
 echo ""
 
-# Activate SOL and write to log file
-# Also display to console with timestamp
-ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol activate | tee -a "${LOG_FILE}"
+# Auto-restart loop
+while true; do
+    echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')] Connecting to SOL...${NC}" | tee -a "${LOG_FILE}"
+    
+    # Activate SOL and write to log file
+    ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol activate | tee -a "${LOG_FILE}"
+    
+    # SOL disconnected (session ended)
+    EXIT_CODE=$?
+    echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] SOL disconnected (exit code: ${EXIT_CODE})${NC}" | tee -a "${LOG_FILE}"
+    
+    # Check if it was intentional exit (CTRL+C would have triggered cleanup trap)
+    # If we get here, it was a disconnect, not user interruption
+    echo -e "${YELLOW}Waiting 10 seconds before reconnecting...${NC}"
+    sleep 10
+    
+    # Deactivate any stale sessions before reconnecting
+    ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
+    sleep 1
+done
 
-# Cleanup on normal exit
+# Cleanup on normal exit (never reached due to loop, only via trap)
 cleanup
 
