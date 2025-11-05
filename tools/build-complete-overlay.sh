@@ -50,6 +50,7 @@ echo "Working directory: $TEMP_DIR"
 echo "[1/6] Creating overlay structure..."
 mkdir -p "$TEMP_DIR/autoinstall"
 mkdir -p "$TEMP_DIR/scripts/casper-bottom"
+mkdir -p "$TEMP_DIR/scripts/init-top"
 mkdir -p "$TEMP_DIR/usr/bin"
 
 # Copy autoinstall configuration
@@ -122,6 +123,45 @@ return $rc
 EOSCRIPT
 
 chmod +x "$TEMP_DIR/scripts/do_urlmount_override"
+
+# Create init-top hook to inject our override into casper (CRITICAL!)
+echo "[4.5/6] Creating init-top hook to patch casper..."
+cat > "$TEMP_DIR/scripts/init-top/override_casper" << 'EOSCRIPT'
+#!/bin/sh
+# Inject URL mount override into casper script
+# This runs EARLY to patch casper before it's used
+
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+
+case "$1" in
+    prereqs) prereqs; exit 0 ;;
+esac
+
+CASPER_SCRIPT="/scripts/casper"
+OVERRIDE="/scripts/do_urlmount_override"
+
+if [ -f "$CASPER_SCRIPT" ] && [ -f "$OVERRIDE" ]; then
+    # Backup original
+    cp "$CASPER_SCRIPT" "${CASPER_SCRIPT}.orig"
+    
+    # Append override function
+    cat >> "$CASPER_SCRIPT" << 'OVERRIDE_FUNC'
+
+# URL mount override injected by autoinstall overlay
+do_urlmount() {
+    . /scripts/do_urlmount_override
+}
+OVERRIDE_FUNC
+fi
+
+exit 0
+EOSCRIPT
+
+chmod +x "$TEMP_DIR/scripts/init-top/override_casper"
+
+# Create ORDER file for init-top
+echo "override_casper" > "$TEMP_DIR/scripts/init-top/ORDER"
 
 # Create casper-bottom hook for cloud-init
 echo "[5/6] Creating cloud-init integration hooks..."
