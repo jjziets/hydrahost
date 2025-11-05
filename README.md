@@ -1,199 +1,296 @@
-# Hydra Host – Ubuntu 20.04.6 iPXE Autoinstall Example
+# Ubuntu Autoinstall for Hydra Host - iPXE Network Boot
 
-This repository provides a **ready-to-use iPXE script** and **autoinstall configuration** to deploy **Ubuntu 20.04.6 LTS (Focal)** on Hydra Host bare-metal servers.
+Automated Ubuntu installation on Hydra Host bare-metal servers using iPXE network boot and cloud-init autoinstall.
 
-It is intended as a working example you can clone and customize for your own provisioning workflows.
-
----
-
-## 🚀 How to Provision on Hydra Host
-
-1. Go to the **Provision** tab of your server in the Hydra Host console.
-
-2. In the **Operating System** dropdown, select **iPXE Custom**.
-
-3. In the iPXE URL input, paste:
-
-   ```
-   https://raw.githubusercontent.com/jjziets/hydrahost/main/boot.ipxe
-   ```
-
-4. (Recommended) Click **Create SSH Key** and add your SSH public key.
-
-   * The installer will provision the `ubuntu` user with this key.
-   * Password login is also enabled as a fallback.
-
-5. Click **Provision**.
-
-   * The server will reboot, chainload iPXE, and run a fully unattended Ubuntu 20.04.6 installation.
-   * When complete, you can SSH in using your key or your password.
+**Supports:**
+- Ubuntu 22.04 LTS (Jammy Jellyfish) ⭐ **Recommended**
+- Ubuntu 20.04 LTS (Focal Fossa) - Legacy support
 
 ---
 
-## 🔑 Access After Install
+## 🚀 Quick Start
 
-* Default user: `ubuntu`
-* SSH key: your Hydra console key (or any you baked into `user-data`)
-* Password: fallback password you define in `user-data`
+### 1. Provision Server in Hydra Host Console
 
-Example:
+1. Go to the **Provision** tab for your server
+2. Select **iPXE Custom** as the Operating System
+3. Enter the iPXE URL for your desired Ubuntu version:
+
+**Ubuntu 22.04 LTS (Recommended):**
+```
+https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/boot.ipxe
+```
+
+**Ubuntu 20.04 LTS:**
+```
+https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-20.04/boot.ipxe
+```
+
+4. (Optional) Add your SSH public key
+5. Click **Provision**
+
+The server will boot, download the installer, and run a fully automated installation.
+
+---
+
+## 📋 What Gets Installed
+
+### Default Configuration
+
+- **User:** `ubuntu`
+- **SSH:** Enabled with key-based auth (+ password fallback)
+- **Networking:** DHCP on first available ethernet interface
+- **Storage:** LVM on first disk (wipes existing data!)
+- **Packages:** `openssh-server`, `curl`, `htop`, `nvme-cli`, `net-tools`
+- **Console:** Serial console enabled for remote access
+- **Post-install:** Automatic reboot
+
+### Access After Installation
 
 ```bash
-ssh ubuntu@<your-server-ip>
+ssh ubuntu@<server-ip>
 ```
 
 ---
 
-## 🛠️ What’s Inside
+## 🎨 Customization
 
-* **`boot.ipxe`**
-  iPXE script that loads the Ubuntu 20.04.6 kernel + initrd from this repo and points to Canonical’s ISO.
+Each Ubuntu version has its own configuration directory:
 
-* **`casper/`**
-  Contains `vmlinuz` and `initrd` extracted from the official Ubuntu 20.04.6 Live Server ISO.
+```
+ubuntu-22.04/
+├── boot.ipxe           # iPXE boot script
+├── casper/             # Kernel and initrd
+│   ├── vmlinuz
+│   └── initrd
+└── autoinstall/        # Cloud-init autoinstall configs
+    ├── user-data       # Main configuration
+    └── meta-data       # Instance metadata
 
-* **`autoinstall/`**
+ubuntu-20.04/
+└── (same structure)
+```
 
-  * `user-data`: cloud-init config (autoinstall).
-  * `meta-data`: NoCloud metadata.
+### Customize Installation
 
-* **ISO Payload**
-  Installer fetches the base system from:
-  [ubuntu-20.04.6-live-server-amd64.iso](https://releases.ubuntu.com/focal/ubuntu-20.04.6-live-server-amd64.iso)
+Edit the `autoinstall/user-data` file for your chosen version to modify:
 
----
+- **Hostname:** Change `identity.hostname`
+- **Username/Password:** Update `identity.username` and `identity.password`
+- **SSH Keys:** Replace keys in `ssh.authorized-keys`
+- **Network:** Configure static IPs in `network.network`
+- **Storage:** Customize `storage.layout`
+- **Packages:** Add/remove packages in `packages`
+- **Post-install scripts:** Modify `late-commands`
 
-## 📋 Default Autoinstall Behavior
-
-* Language/locale: `en_US.UTF-8`
-* Keyboard layout: `us`
-* Hostname: `hydra-node`
-* User: `ubuntu`
-
-  * SSH key authentication enabled
-  * Password login enabled as backup (SHA-512 hash in `user-data`)
-* Networking: DHCP on any NIC matching `e*` (covers `enp*`, `ens*`, `eno*`)
-* Storage: wipe first disk, create LVM root + swap
-* Packages: `openssh-server`, `curl`, `htop`, `nvme-cli`
-* Serial console: enabled on `ttyS0` and `ttyS1`
-* Autoreboot after install
-
----
-
-## 📝 Customizing
-
-You can edit [`autoinstall/user-data`](autoinstall/user-data) to adjust:
-
-* **Hostname**
-* **SSH keys** (under `ssh.authorized-keys`)
-* **Password hash** (under `identity.password`)
-* **Storage layout** (pin to `/dev/nvme0n1` or RAID config)
-* **Networking** (replace DHCP with static IP config)
-* **Packages** (add your own list)
-
----
-
-## 🔑 Generating a Password Hash
-
-Passwords must be SHA-512 hashed for use in cloud-init.
-
-On macOS or Linux:
+### Generate Password Hash
 
 ```bash
-brew install whois   # macOS only
+# On macOS
+brew install whois
 mkpasswd -m sha-512
-```
 
-Or with Python:
-
-```bash
-python3 - <<'PY'
-import crypt, getpass
-print(crypt.crypt(getpass.getpass("Password: "), crypt.mksalt(crypt.METHOD_SHA512)))
-PY
-```
-
-Copy the `$6$...` string into `identity.password` in [`user-data`](autoinstall/user-data).
-
----
-
-## 📂 Repo Layout
-
-```
-boot.ipxe                # main iPXE script
-casper/                  # kernel + initrd extracted from ISO
-autoinstall/
-  ├─ user-data           # autoinstall config
-  └─ meta-data           # NoCloud metadata
+# Or with Python
+python3 -c "import crypt,getpass; print(crypt.crypt(getpass.getpass(), crypt.mksalt(crypt.METHOD_SHA512)))"
 ```
 
 ---
 
-## 🔧 Bridge Network Configuration (Required for Custom iPXE)
+## 🏗️ Repository Structure
 
-**Important:** For custom iPXE boot to work, the provisioning network must have internet access to download boot files from GitHub.
-
-If you encounter "Network unreachable" errors during iPXE chainload, the bridge servers need a NAT configuration fix.
-
-### Quick Fix
-
-Run this on each bridge server:
-```bash
-sudo ./apply-bridge-nat-fix.sh
 ```
-
-### Documentation
-
-* **[QUICK_FIX_SUMMARY.md](QUICK_FIX_SUMMARY.md)** - Executive summary of the issue and fix
-* **[BRIDGE_NAT_FIX.md](BRIDGE_NAT_FIX.md)** - Detailed technical explanation and multiple fix options
-* **[apply-bridge-nat-fix.sh](apply-bridge-nat-fix.sh)** - Automated script to apply the fix
-
-### What This Fixes
-
-The provisioning network (`10.230.12.0/24`) needs NAT/masquerading to access the internet. Without this, iPXE clients cannot download boot scripts from external URLs like GitHub.
+hydrahost/
+├── ubuntu-22.04/               # Ubuntu 22.04 LTS
+│   ├── boot.ipxe
+│   ├── casper/
+│   │   ├── vmlinuz
+│   │   └── initrd
+│   └── autoinstall/
+│       ├── user-data
+│       └── meta-data
+│
+├── ubuntu-20.04/               # Ubuntu 20.04 LTS
+│   └── (same structure)
+│
+├── tools/                      # Shared utilities
+│   ├── monitor-sol.sh         # IPMI SOL monitoring
+│   ├── tail-sol.sh            # Log viewer
+│   ├── diagnose-network.sh    # Network diagnostics
+│   └── apply-bridge-nat-fix.sh # Bridge NAT configuration
+│
+├── internal/                   # Internal documentation (not in git)
+├── .env.example               # IPMI credentials template
+├── .gitignore
+└── README.md                   # This file
+```
 
 ---
 
-## 🐛 Debugging & Monitoring
+## 🔧 Tools & Utilities
 
-### Monitor Deployment via IPMI SOL
-
-Watch the deployment process in real-time using Serial Over LAN:
+### Monitor Installation Progress
 
 ```bash
 # 1. Configure IPMI credentials
 cp .env.example .env
-# Edit .env with your IPMI details
+# Edit .env with your server's IPMI details
 
-# 2. Start monitoring
-./monitor-sol.sh
+# 2. Start SOL monitoring
+./tools/monitor-sol.sh
 
-# 3. In another terminal, tail the logs
-./tail-sol.sh
+# 3. (Optional) Tail logs in another terminal
+./tools/tail-sol.sh
 ```
 
 ### Network Diagnostics
 
-Test connectivity to GitHub and verify boot files are accessible:
-
 ```bash
-./diagnose-network.sh
+./tools/diagnose-network.sh
+```
+
+Tests connectivity to GitHub and validates all boot files are accessible.
+
+---
+
+## 🌐 Network Requirements
+
+### Provisioning Network Configuration
+
+For custom iPXE boot to work, the Hydra Host bridge's provisioning network must provide:
+
+1. **DHCP Gateway Option:** Clients need a default gateway to reach the internet
+2. **NAT/Masquerading:** Provisioning network must have internet access
+
+**See:** `internal/REQUIRED_KEA_CONFIG.md` for detailed configuration requirements.
+
+---
+
+## 🔍 Troubleshooting
+
+### Boot Fails with "Network unreachable"
+
+**Issue:** Provisioning network can't access the internet.
+
+**Solution:** The bridge needs:
+- DHCP option 3 (routers) configured in Kea
+- NAT rule for provisioning network
+
+See `internal/REQUIRED_KEA_CONFIG.md` for details.
+
+### Installation Hangs or Fails
+
+**Debug steps:**
+1. Use `./tools/monitor-sol.sh` to watch the serial console
+2. Check that SSH key is valid in `autoinstall/user-data`
+3. Verify password hash is correctly formatted
+4. Check network connectivity with `./tools/diagnose-network.sh`
+
+### Can't SSH After Install
+
+**Check:**
+- Is the server reachable? `ping <server-ip>`
+- Are you using the correct username? (default: `ubuntu`)
+- Is your SSH key in `autoinstall/user-data`?
+- Try password auth if key fails
+
+---
+
+## 📚 Documentation
+
+### For Users
+- This README - Quick start and customization
+- `autoinstall/user-data` - Inline comments explain each option
+
+### For Infrastructure Team
+- `internal/REQUIRED_KEA_CONFIG.md` - Network configuration requirements
+- `internal/QUICK_FIX_SUMMARY.md` - Executive summary of network setup
+- `internal/BRIDGE_CHANGES_APPLIED.md` - Reference implementation
+
+---
+
+## 🆚 Ubuntu Version Comparison
+
+| Feature | 22.04 LTS | 20.04 LTS |
+|---------|-----------|-----------|
+| **Kernel** | 5.15+ | 5.4 |
+| **Support Until** | April 2027 | April 2025 |
+| **Autoinstall** | Improved | Basic |
+| **Cloud-init** | 24.x | 20.x |
+| **Recommended** | ✅ Yes | Legacy only |
+
+**Recommendation:** Use Ubuntu 22.04 LTS for new deployments. It has better hardware support and more reliable autoinstall.
+
+---
+
+## ⚙️ Advanced Configuration
+
+### Use Different Ubuntu Version
+
+To add support for another Ubuntu version (e.g., 24.04):
+
+1. Create directory: `ubuntu-24.04/`
+2. Download and extract casper files from ISO
+3. Copy and adapt `boot.ipxe` and `autoinstall/` configs
+4. Update URLs in boot.ipxe
+
+### Custom Kernel Parameters
+
+Edit `boot.ipxe` and modify the `common_args` variable:
+
+```ipxe
+set common_args ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url} your-param=value
+```
+
+### Static IP Configuration
+
+Edit `autoinstall/user-data`:
+
+```yaml
+network:
+  network:
+    version: 2
+    ethernets:
+      eth0:
+        addresses: [192.168.1.100/24]
+        gateway4: 192.168.1.1
+        nameservers:
+          addresses: [8.8.8.8, 1.1.1.1]
 ```
 
 ---
 
-## ⚠️ Notes
+## 📝 Notes
 
-* This repo must stay **public** so iPXE can fetch kernel/initrd and autoinstall seed.
-* GitHub LFS is used for `casper/initrd` (large file). For large-scale deployments, mirror to your own CDN.
-* `boot.ipxe` defaults to `console=ttyS1`. Adjust to `ttyS0` if your hardware uses that.
-* Autoinstall is fully unattended — ensure your SSH key or password is correct before provisioning.
+- Repository must be **public** for iPXE to fetch files
+- Large files (initrd) use GitHub LFS
+- Serial console defaults to `ttyS1` (adjust if needed)
+- Installation is **fully automated** - verify configs before provisioning!
 
 ---
 
-## ✅ Next Steps
+## 🤝 Contributing
 
-* Provision a node in Hydra Host with this example.
-* SSH in as `ubuntu` with your key or password.
-* Fork this repo and customize `user-data` for your team’s needs.
+1. Fork this repository
+2. Create a feature branch
+3. Customize for your use case
+4. Share improvements via pull request
 
+---
+
+## 📄 License
+
+See [LICENSE](LICENSE) file.
+
+---
+
+## 🔗 Resources
+
+- [Ubuntu Autoinstall Documentation](https://ubuntu.com/server/docs/install/autoinstall)
+- [Cloud-init Documentation](https://cloudinit.readthedocs.io/)
+- [iPXE Documentation](https://ipxe.org/)
+- [Hydra Host](https://hydrahost.com/)
+
+---
+
+**Status:** Production-ready for Ubuntu 22.04 LTS  
+**Maintained by:** Hydra Host Community

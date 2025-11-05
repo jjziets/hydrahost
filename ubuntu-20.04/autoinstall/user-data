@@ -1,0 +1,56 @@
+#cloud-config
+autoinstall:
+  version: 1
+
+  locale: en_US.UTF-8
+  keyboard: { layout: us }
+
+  identity:
+    hostname: hydra-node
+    username: ubuntu
+    # SHA-512 *hashed* password (fallback login)
+    # Generate your own and replace this:
+    password: "$6$rounds=4096$replace.this$w2b0jDk6W0s4e0..example../"
+
+  # Network: DHCP on any predictable-named ethernet (enp*/ens*/eno*)
+  network:
+    network:
+      version: 2
+      renderer: networkd
+      ethernets:
+        all:
+          match: { name: "e*" }
+          dhcp4: true
+          dhcp6: false
+          optional: true
+          dhcp-identifier: mac
+
+  ssh:
+    install-server: true
+    # keep password auth enabled as backup
+    allow-pw: true
+    authorized-keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIYOUR_REAL_KEY_HERE hydra@client"  # <-- replace me
+
+  storage:
+    layout: { name: lvm }   # wipe first disk and create LVM root+swap
+
+  packages:
+    - openssh-server
+    - curl
+    - htop
+    - nvme-cli
+
+  late-commands:
+    # Ensure serial consoles are active post-install (handy for SOL)
+    - curtin in-target --target=/target -- bash -c "sed -ri 's/^GRUB_CMDLINE_LINUX=.*$/GRUB_CMDLINE_LINUX=\"console=ttyS0,115200n8 console=ttyS1,115200n8\"/' /etc/default/grub || echo 'GRUB_CMDLINE_LINUX=\"console=ttyS0,115200n8 console=ttyS1,115200n8\"' >> /etc/default/grub"
+    - curtin in-target --target=/target update-grub
+
+    # Be explicit: keep SSH password auth ON (backup to your key)
+    - curtin in-target --target=/target -- bash -c "sed -ri 's/^#?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config"
+    - curtin in-target --target=/target systemctl enable ssh
+
+    # Stamp a success marker
+    - curtin in-target --target=/target -- bash -c "date > /root/HYDRA_AUTOINSTALL_DONE"
+
+  reboot: true

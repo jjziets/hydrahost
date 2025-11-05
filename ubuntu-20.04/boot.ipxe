@@ -1,0 +1,37 @@
+#!ipxe
+# Ubuntu 20.04.6 Live Server via kernel+initrd + ISO URL
+# casper from this repo (LFS), ISO from Canonical
+
+set iso_url  https://releases.ubuntu.com/focal/ubuntu-20.04.6-live-server-amd64.iso
+set casper   https://raw.githubusercontent.com/jjziets/hydrahost/main/casper
+# NoCloud seed (MUST end with /)
+set seed_url https://raw.githubusercontent.com/jjziets/hydrahost/main/autoinstall/
+
+dhcp
+
+:menu
+menu Ubuntu 20.04.6 Live Server - Console
+item s0  Serial ttyS0 (115200)
+item s1  Serial ttyS1 (115200)
+item vga VGA console
+choose --timeout 10000 --default s1 sel || goto menu
+
+# Escape ';' in iPXE with '\;'
+# Use fetch= to download ISO, toram to load to memory
+set common_args boot=casper fetch=${iso_url} toram ip=dhcp fsck.mode=skip autoinstall ds=nocloud-net\;s=${seed_url}
+
+:s0
+set cons console=ttyS0,115200n8
+goto boot
+:s1
+set cons console=ttyS1,115200n8
+goto boot
+:vga
+set cons ---
+goto boot
+
+:boot
+echo Booting Ubuntu 20.04.6 with ${cons}
+kernel ${casper}/vmlinuz ${common_args} ${cons} ---
+initrd ${casper}/initrd
+boot || goto menu
