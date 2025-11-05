@@ -1,11 +1,12 @@
 #!ipxe
-# Ubuntu 22.04 LTS (Jammy) Live Server - iPXE Boot Script
+# Ubuntu 22.04 LTS (Jammy) Live Server - iPXE Boot Script  
+# Using squashfs approach (smaller, faster than ISO)
 # For use with Hydra Host bare-metal provisioning
 
-set iso_url  https://releases.ubuntu.com/jammy/ubuntu-22.04.5-live-server-amd64.iso
-set casper   https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/casper
+set squashfs_url https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/filesystem.squashfs
+set casper       https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/casper
 # NoCloud seed (MUST end with /)
-set seed_url https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/autoinstall/
+set seed_url     https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/autoinstall/
 
 dhcp
 
@@ -17,9 +18,8 @@ item vga VGA console
 choose --timeout 10000 --default s1 sel || goto menu
 
 # Escape ';' in iPXE with '\;'
-# Boot parameters based on Brokkr's working discovery template
-# Adding root=/dev/ram0 to prevent early kernel panic
-set common_args root=/dev/ram0 boot=casper netboot=url nfsboot=auto ro network ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
+# Boot from squashfs directly (smaller download than ISO)
+set common_args boot=casper netboot=url url=${squashfs_url} ip=dhcp autoinstall ds=nocloud-net\;s=${seed_url}
 
 :s0
 set cons console=tty0 console=ttyS0,115200n8 earlyprintk=ttyS0,115200 earlycon=ttyS0,115200
