@@ -4,14 +4,15 @@
 # Captures Serial Over LAN output to a log file for debugging deployments
 #
 
-# Get the script's directory
+# Get the repo root directory (parent of tools/)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Load environment variables from .env file
-if [ ! -f "${SCRIPT_DIR}/.env" ]; then
+# Load environment variables from .env file in repo root
+if [ ! -f "${REPO_ROOT}/.env" ]; then
     echo "ERROR: .env file not found!"
     echo ""
-    echo "Please create a .env file with your IPMI credentials:"
+    echo "Please create a .env file in the repo root with your IPMI credentials:"
     echo "  cp .env.example .env"
     echo "  # Then edit .env with your credentials"
     exit 1
@@ -19,7 +20,7 @@ fi
 
 # Source the .env file
 set -a
-source "${SCRIPT_DIR}/.env"
+source "${REPO_ROOT}/.env"
 set +a
 
 # Validate required variables
@@ -29,8 +30,8 @@ if [ -z "${IPMI_HOST}" ] || [ -z "${IPMI_USER}" ] || [ -z "${IPMI_PASS}" ]; then
     exit 1
 fi
 
-# Log file location
-LOG_DIR="${SCRIPT_DIR}/logs"
+# Log file location (in repo root)
+LOG_DIR="${REPO_ROOT}/logs"
 LOG_FILE="${LOG_DIR}/sol-output-$(date +%Y%m%d-%H%M%S).log"
 
 # Colors for output
