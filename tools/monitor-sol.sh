@@ -96,8 +96,8 @@ while true; do
     
     # Check if it was intentional exit (CTRL+C would have triggered cleanup trap)
     # If we get here, it was a disconnect, not user interruption
-    echo -e "${YELLOW}Waiting 10 seconds before reconnecting...${NC}"
-    sleep 10
+    echo -e "${YELLOW}Waiting 5 seconds before reconnecting...${NC}"
+    sleep 5
     
     # Deactivate any stale sessions before reconnecting
     ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
