@@ -34,4 +34,5 @@ goto boot
 echo Booting Ubuntu 20.04.6 with ${cons}
 kernel ${casper}/vmlinuz ${common_args} ${cons} ---
 initrd ${casper}/initrd
+initrd https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-20.04/autoinstall-overlay.img
 boot || goto menu
