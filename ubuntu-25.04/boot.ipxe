@@ -1,0 +1,37 @@
+#!ipxe
+# Ubuntu 25.04 (Plucky Puffin) Live Server - iPXE Boot Script  
+# For use with Hydra Host bare-metal provisioning
+
+set iso_url  https://releases.ubuntu.com/plucky/ubuntu-25.04-live-server-amd64.iso
+set casper   https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-25.04/casper
+# NoCloud seed (MUST end with /)
+set seed_url https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-25.04/autoinstall/
+
+dhcp
+
+:menu
+menu Ubuntu 25.04 Server - Console Selection
+item s0  Serial ttyS0 (115200)
+item s1  Serial ttyS1 (115200)
+item vga VGA console
+choose --timeout 10000 --default s1 sel || goto menu
+
+# Escape ';' in iPXE with '\;'
+set common_args ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
+
+:s0
+set cons console=ttyS0,115200n8
+goto boot
+:s1
+set cons console=ttyS1,115200n8
+goto boot
+:vga
+set cons ---
+goto boot
+
+:boot
+echo Booting Ubuntu 25.04 with ${cons}
+kernel ${casper}/vmlinuz ${common_args} ${cons} ---
+initrd ${casper}/initrd
+boot || goto menu
+

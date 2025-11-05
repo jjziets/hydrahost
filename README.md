@@ -3,7 +3,9 @@
 Automated Ubuntu installation on Hydra Host bare-metal servers using iPXE network boot and cloud-init autoinstall.
 
 **Supports:**
-- Ubuntu 22.04 LTS (Jammy Jellyfish) ⭐ **Recommended**
+- Ubuntu 25.04 (Plucky Puffin) 🆕 **Latest**
+- Ubuntu 24.04 LTS (Noble Numbat) ⭐ **Recommended**
+- Ubuntu 22.04 LTS (Jammy Jellyfish)
 - Ubuntu 20.04 LTS (Focal Fossa) - Legacy support
 
 ---
@@ -16,7 +18,17 @@ Automated Ubuntu installation on Hydra Host bare-metal servers using iPXE networ
 2. Select **iPXE Custom** as the Operating System
 3. Enter the iPXE URL for your desired Ubuntu version:
 
-**Ubuntu 22.04 LTS (Recommended):**
+**Ubuntu 25.04 (Latest):**
+```
+https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-25.04/boot.ipxe
+```
+
+**Ubuntu 24.04 LTS (Recommended):**
+```
+https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-24.04/boot.ipxe
+```
+
+**Ubuntu 22.04 LTS:**
 ```
 https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/boot.ipxe
 ```
@@ -100,7 +112,7 @@ python3 -c "import crypt,getpass; print(crypt.crypt(getpass.getpass(), crypt.mks
 
 ```
 hydrahost/
-├── ubuntu-22.04/               # Ubuntu 22.04 LTS
+├── ubuntu-25.04/               # Ubuntu 25.04 (Latest)
 │   ├── boot.ipxe
 │   ├── casper/
 │   │   ├── vmlinuz
@@ -109,7 +121,13 @@ hydrahost/
 │       ├── user-data
 │       └── meta-data
 │
-├── ubuntu-20.04/               # Ubuntu 20.04 LTS
+├── ubuntu-24.04/               # Ubuntu 24.04 LTS (Recommended)
+│   └── (same structure)
+│
+├── ubuntu-22.04/               # Ubuntu 22.04 LTS
+│   └── (same structure)
+│
+├── ubuntu-20.04/               # Ubuntu 20.04 LTS (Legacy)
 │   └── (same structure)
 │
 ├── tools/                      # Shared utilities
@@ -210,15 +228,18 @@ See `internal/REQUIRED_KEA_CONFIG.md` for details.
 
 ## 🆚 Ubuntu Version Comparison
 
-| Feature | 22.04 LTS | 20.04 LTS |
-|---------|-----------|-----------|
-| **Kernel** | 5.15+ | 5.4 |
-| **Support Until** | April 2027 | April 2025 |
-| **Autoinstall** | Improved | Basic |
-| **Cloud-init** | 24.x | 20.x |
-| **Recommended** | ✅ Yes | Legacy only |
+| Feature | 25.04 | 24.04 LTS | 22.04 LTS | 20.04 LTS |
+|---------|-------|-----------|-----------|-----------|
+| **Release** | Apr 2025 | Apr 2024 | Apr 2022 | Apr 2020 |
+| **Support Until** | Jan 2026 | Apr 2029 | Apr 2027 | Apr 2025 |
+| **Kernel** | 6.13+ | 6.8 | 5.15 | 5.4 |
+| **Status** | Latest | **LTS** | LTS | EOL Soon |
+| **Recommended** | Testing | ✅ **Production** | Yes | Legacy |
 
-**Recommendation:** Use Ubuntu 22.04 LTS for new deployments. It has better hardware support and more reliable autoinstall.
+**Recommendations:**
+- **Production:** Use Ubuntu 24.04 LTS (longest support, stable)
+- **Testing/Latest:** Use Ubuntu 25.04 (cutting edge features)
+- **Legacy Systems:** Use Ubuntu 22.04 or 20.04 if needed
 
 ---
 

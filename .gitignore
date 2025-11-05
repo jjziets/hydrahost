@@ -8,6 +8,10 @@ internal/
 logs/
 sol-output-*.log
 
+# Ubuntu ISO files (too large for GitHub)
+*.iso
+*.iso.torrent
+
 # macOS
 .DS_Store
 
