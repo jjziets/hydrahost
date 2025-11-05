@@ -17,8 +17,9 @@ item vga VGA console
 choose --timeout 10000 --default s1 sel || goto menu
 
 # Escape ';' in iPXE with '\;'
-# Ubuntu 22.04 has better autoinstall support than 20.04
-set common_args ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
+# Boot parameters based on working Brokkr discovery (Ubuntu 22.04)
+# Key changes: layered-network-config for better network handling
+set common_args ip=dhcp url=${iso_url} layered-network-config autoinstall ds=nocloud-net\;s=${seed_url}
 
 :s0
 set cons console=ttyS0,115200n8
