@@ -17,9 +17,9 @@ item vga VGA console
 choose --timeout 10000 --default s1 sel || goto menu
 
 # Escape ';' in iPXE with '\;'
-# Boot parameters based on working Brokkr discovery (Ubuntu 22.04)
-# Key changes: layered-network-config for better network handling
-set common_args ip=dhcp url=${iso_url} layered-network-config autoinstall ds=nocloud-net\;s=${seed_url}
+# Boot parameters based on Brokkr's working discovery template
+# Using same params as Brokkr (which is Ubuntu 22.04-based)
+set common_args boot=casper netboot=url nfsboot=auto ro network ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
 
 :s0
 set cons console=ttyS0,115200n8
