@@ -77,13 +77,13 @@ cleanup() {
 trap cleanup INT TERM
 
 echo -e "${YELLOW}Deactivating any existing SOL sessions...${NC}"
-ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
+ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE:-0}" -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
 sleep 1
 
 echo -e "${YELLOW}Configuring SOL parameters...${NC}"
-ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set baud "${SOL_BAUD_RATE}" >/dev/null 2>&1 || \
+ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE:-0}" -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set baud "${SOL_BAUD_RATE}" >/dev/null 2>&1 || \
     echo -e "${RED}Warning: Unable to set SOL baud rate${NC}"
-ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set comport "${SOL_COM_PORT}" >/dev/null 2>&1 || \
+ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE:-0}" -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set comport "${SOL_COM_PORT}" >/dev/null 2>&1 || \
     echo -e "${RED}Warning: Unable to set SOL COM port${NC}"
 
 echo -e "${GREEN}Activating SOL and logging to file...${NC}"
@@ -95,7 +95,7 @@ echo ""
 
 # Activate SOL and write to log file
 # Also display to console
-ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol activate | tee -a "${LOG_FILE}"
+ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE:-0}" -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol activate | tee -a "${LOG_FILE}"
 
 # Cleanup on normal exit
 cleanup
