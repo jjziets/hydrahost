@@ -33,7 +33,7 @@ goto boot
 
 :boot
 echo Booting Ubuntu 22.04 LTS with ${cons}
-kernel ${casper}/vmlinuz ${common_args} ${cons} ---
+kernel ${casper}/vmlinuz ${common_args} initrd=initrd initrd=autoinstall-overlay.img ${cons} ---
 initrd ${casper}/initrd
 initrd https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/autoinstall-overlay.img
 boot || goto menu

@@ -212,7 +212,7 @@ chmod +x "$TEMP_DIR/scripts/casper-bottom/01autoinstall"
 echo "[6/6] Building initrd archive..."
 CURRENT_DIR=$(pwd)
 cd "$TEMP_DIR"
-find . | cpio -o -H newc | gzip -9 > "$CURRENT_DIR/$OUTPUT_FILE"
+find . | sort | cpio --quiet -o -H newc > "$CURRENT_DIR/$OUTPUT_FILE"
 cd - > /dev/null
 
 # Cleanup
