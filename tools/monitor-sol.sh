@@ -30,6 +30,10 @@ if [ -z "${IPMI_HOST}" ] || [ -z "${IPMI_USER}" ] || [ -z "${IPMI_PASS}" ]; then
     exit 1
 fi
 
+# Serial port settings (defaults match ttyS0 @ 115200)
+SOL_COM_PORT="${SOL_COM_PORT:-0}"     # 0 = ttyS0 / COM1, 1 = ttyS1 / COM2
+SOL_BAUD_RATE="${SOL_BAUD_RATE:-115200}"
+
 # Log file location (in repo root)
 LOG_DIR="${REPO_ROOT}/logs"
 LOG_FILE="${LOG_DIR}/sol-output-$(date +%Y%m%d-%H%M%S).log"
@@ -46,6 +50,7 @@ mkdir -p "${LOG_DIR}"
 echo -e "${GREEN}=== IPMI SOL Monitor ===${NC}"
 echo -e "IPMI Host: ${IPMI_HOST}"
 echo -e "Log file:  ${LOG_FILE}"
+echo -e "Serial:    ttyS${SOL_COM_PORT} @ ${SOL_BAUD_RATE}"
 echo ""
 
 # Check if ipmitool is installed
@@ -74,6 +79,12 @@ trap cleanup INT TERM
 echo -e "${YELLOW}Deactivating any existing SOL sessions...${NC}"
 ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
 sleep 1
+
+echo -e "${YELLOW}Configuring SOL parameters...${NC}"
+ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set baud "${SOL_BAUD_RATE}" >/dev/null 2>&1 || \
+    echo -e "${RED}Warning: Unable to set SOL baud rate${NC}"
+ipmitool -I lanplus -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set comport "${SOL_COM_PORT}" >/dev/null 2>&1 || \
+    echo -e "${RED}Warning: Unable to set SOL COM port${NC}"
 
 echo -e "${GREEN}Activating SOL and logging to file...${NC}"
 echo -e "${YELLOW}Press CTRL+C to stop monitoring${NC}"
