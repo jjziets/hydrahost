@@ -11,31 +11,16 @@ set seed_url     https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu
 
 dhcp
 
-:menu
-menu Ubuntu 22.04 LTS Server - Console Selection
-item s0  Serial ttyS0 (115200)
-item s1  Serial ttyS1 (115200)
-item vga VGA console
-choose --timeout 10000 --default s1 sel || goto menu
+# Force serial console on ttyS1 for SOL debugging
+set cons console=tty0 console=ttyS1,115200n8 earlyprintk=serial,ttyS1,115200
 
-# Escape ';' in iPXE with '\;'
 # Boot from ISO over HTTP (works with do_urlmount override)
 set common_args boot=casper netboot=url url=${iso_url} ip=dhcp autoinstall ds=nocloud-net\;s=${seed_url}
-
-:s0
-set cons console=tty0 console=ttyS0,115200n8 earlyprintk=serial,ttyS0,115200
-goto boot
-:s1
-set cons console=tty0 console=ttyS1,115200n8 earlyprintk=serial,ttyS1,115200
-goto boot
-:vga
-set cons console=tty0
-goto boot
 
 :boot
 echo Booting Ubuntu 22.04 LTS with ${cons}
 kernel ${casper}/vmlinuz ${common_args} initrd=initrd.img initrd=autoinstall-overlay.img ${cons} ---
 initrd ${casper}/initrd initrd.img
 initrd https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/autoinstall-overlay.img autoinstall-overlay.img
-boot || goto menu
+boot
 
