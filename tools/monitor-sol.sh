@@ -30,6 +30,11 @@ if [ -z "${IPMI_HOST}" ] || [ -z "${IPMI_USER}" ] || [ -z "${IPMI_PASS}" ]; then
     exit 1
 fi
 
+# IPMI interface and security settings (override with env vars if needed)
+SOL_INTERFACE="${SOL_INTERFACE:-lan}"                 # lanplus (IPMI 2.0) or lan (IPMI 1.5)
+IPMI_CIPHER_SUITE="${IPMI_CIPHER_SUITE:-0}"           # Cipher suite for lanplus (ignored for lan)
+IPMI_PRIVILEGE_LEVEL="${IPMI_PRIVILEGE_LEVEL:-ADMINISTRATOR}"
+
 # Serial port settings (defaults match ttyS0 @ 115200)
 SOL_COM_PORT="${SOL_COM_PORT:-0}"     # 0 = ttyS0 / COM1, 1 = ttyS1 / COM2
 SOL_BAUD_RATE="${SOL_BAUD_RATE:-115200}"
@@ -51,6 +56,7 @@ echo -e "${GREEN}=== IPMI SOL Monitor ===${NC}"
 echo -e "IPMI Host: ${IPMI_HOST}"
 echo -e "Log file:  ${LOG_FILE}"
 echo -e "Serial:    ttyS${SOL_COM_PORT} @ ${SOL_BAUD_RATE}"
+echo -e "Interface: ${SOL_INTERFACE}  Cipher: ${IPMI_CIPHER_SUITE}  Privilege: ${IPMI_PRIVILEGE_LEVEL}"
 echo ""
 
 # Check if ipmitool is installed
@@ -77,13 +83,16 @@ cleanup() {
 trap cleanup INT TERM
 
 echo -e "${YELLOW}Deactivating any existing SOL sessions...${NC}"
-ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE:-0}" -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
+ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" \
+  -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
 sleep 1
 
 echo -e "${YELLOW}Configuring SOL parameters...${NC}"
-ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE:-0}" -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set baud "${SOL_BAUD_RATE}" >/dev/null 2>&1 || \
+ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" \
+  -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set baud "${SOL_BAUD_RATE}" >/dev/null 2>&1 || \
     echo -e "${RED}Warning: Unable to set SOL baud rate${NC}"
-ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE:-0}" -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set comport "${SOL_COM_PORT}" >/dev/null 2>&1 || \
+ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" \
+  -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set comport "${SOL_COM_PORT}" >/dev/null 2>&1 || \
     echo -e "${RED}Warning: Unable to set SOL COM port${NC}"
 
 echo -e "${GREEN}Activating SOL and logging to file...${NC}"
@@ -95,7 +104,8 @@ echo ""
 
 # Activate SOL and write to log file
 # Also display to console
-ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE:-0}" -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol activate | tee -a "${LOG_FILE}"
+ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" \
+  -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol activate | tee -a "${LOG_FILE}"
 
 # Cleanup on normal exit
 cleanup

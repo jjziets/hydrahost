@@ -6,23 +6,54 @@ Before using this repository for Ubuntu autoinstall, you need to extract the cas
 
 ### Extract Casper Files
 
-For each Ubuntu version you want to use:
+**✅ Casper files are already included in this repository!**
+
+The repository includes pre-extracted casper files from live-server ISOs for all versions:
+- Ubuntu 25.04 (Plucky Puffin)
+- Ubuntu 24.04 LTS (Noble Numbat)
+- Ubuntu 22.04 LTS (Jammy Jellyfish)
+- Ubuntu 20.04 LTS (Focal Fossa)
+
+**You can skip this step and go directly to usage.**
+
+### Re-extract Casper Files (Optional)
+
+If you need to update casper files (e.g., for a new Ubuntu point release):
 
 ```bash
-# Ubuntu 22.04 (Recommended)
-./tools/extract-casper-files.sh 22.04
+# Download the ISO first (if not already present)
+cd /path/to/hydrahost
+curl -LO https://releases.ubuntu.com/jammy/ubuntu-22.04.5-live-server-amd64.iso
 
-# Ubuntu 20.04 (Legacy)
-./tools/extract-casper-files.sh 20.04
+# Extract casper files
+./tools/extract-casper-from-iso.sh 22.04
 ```
 
-**Note:** The ISO download is ~2GB and extraction takes 5-10 minutes.
+**Available for all versions:**
+```bash
+./tools/extract-casper-from-iso.sh 20.04
+./tools/extract-casper-from-iso.sh 22.04
+./tools/extract-casper-from-iso.sh 24.04
+./tools/extract-casper-from-iso.sh 25.04
+```
+
+**Note:** The script will verify that extracted initrds are the correct size (70-150MB from live-server ISOs, not small d-i netboot files).
 
 ### Manual Extraction
 
-If the script doesn't work, see the README in each version's casper folder:
-- `ubuntu-22.04/casper/README.md`
-- `ubuntu-20.04/casper/README.md`
+If you need to extract manually:
+
+```bash
+# Using 7z (recommended)
+7z x ubuntu-22.04.5-live-server-amd64.iso casper/vmlinuz casper/initrd -y
+
+# Or using mount (Linux)
+sudo mount -o loop ubuntu-22.04.5-live-server-amd64.iso /mnt
+cp /mnt/casper/vmlinuz /mnt/casper/initrd ubuntu-22.04/casper/
+sudo umount /mnt
+```
+
+**⚠️ Important:** Always extract from **live-server ISOs**, not netboot d-i files!
 
 ### Commit to Git
 

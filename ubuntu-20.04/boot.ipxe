@@ -1,24 +1,26 @@
 #!ipxe
-# Ubuntu 20.04.6 Live Server via kernel+initrd + ISO URL
-# casper from this repo (LFS), ISO from Canonical
+# Ubuntu 20.04 LTS (Focal Fossa) Live Server - iPXE Boot Script
+# For use with Hydra Host bare-metal provisioning
 
 set iso_url  https://releases.ubuntu.com/focal/ubuntu-20.04.6-live-server-amd64.iso
-set casper   https://raw.githubusercontent.com/jjziets/hydrahost/main/casper
+# Use media.githubusercontent.com for LFS files (initrd), raw for non-LFS (vmlinuz)
+set casper_vmlinuz https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-20.04/casper/vmlinuz
+set casper_initrd  https://media.githubusercontent.com/media/jjziets/hydrahost/main/ubuntu-20.04/casper/initrd
 # NoCloud seed (MUST end with /)
-set seed_url https://raw.githubusercontent.com/jjziets/hydrahost/main/autoinstall/
+set seed_url https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-20.04/autoinstall/
 
 dhcp
 
 :menu
-menu Ubuntu 20.04.6 Live Server - Console
+menu Ubuntu 20.04 LTS Server - Console Selection
 item s0  Serial ttyS0 (115200)
 item s1  Serial ttyS1 (115200)
 item vga VGA console
 choose --timeout 10000 --default s1 sel || goto menu
 
 # Escape ';' in iPXE with '\;'
-# Use fetch= to download ISO, toram to load to memory
-set common_args boot=casper fetch=${iso_url} toram ip=dhcp fsck.mode=skip autoinstall ds=nocloud-net\;s=${seed_url}
+# Boot parameters based on Brokkr's working approach
+set common_args boot=casper netboot=url nfsboot=auto ro network ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
 
 :s0
 set cons console=ttyS0,115200n8
@@ -31,8 +33,8 @@ set cons ---
 goto boot
 
 :boot
-echo Booting Ubuntu 20.04.6 with ${cons}
-kernel ${casper}/vmlinuz ${common_args} ${cons} ---
-initrd ${casper}/initrd
+echo Booting Ubuntu 20.04 LTS with ${cons}
+kernel ${casper_vmlinuz} ${common_args} ${cons} ---
+initrd ${casper_initrd}
 initrd https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-20.04/autoinstall-overlay.img
 boot || goto menu

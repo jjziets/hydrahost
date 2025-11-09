@@ -1,26 +1,27 @@
 #!ipxe
-# Ubuntu 22.04 LTS (Jammy) Live Server - iPXE Boot Script  
-# Using squashfs approach (smaller, faster than ISO)
+# Ubuntu 22.04 LTS (Jammy Jellyfish) Live Server - iPXE Boot Script  
 # For use with Hydra Host bare-metal provisioning
 
-# Installer ISO (clients can override with their own URL)
-set iso_url     https://releases.ubuntu.com/jammy/ubuntu-22.04.5-live-server-amd64.iso
-set casper       https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/casper
+set iso_url  https://releases.ubuntu.com/jammy/ubuntu-22.04.5-live-server-amd64.iso
+# Use media.githubusercontent.com for LFS files (initrd), raw for non-LFS (vmlinuz)
+set casper_vmlinuz https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/casper/vmlinuz
+set casper_initrd  https://media.githubusercontent.com/media/jjziets/hydrahost/main/ubuntu-22.04/casper/initrd
 # NoCloud seed (MUST end with /)
-set seed_url     https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/autoinstall/
+set seed_url https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/autoinstall/
 
 dhcp
 
-# Force serial console on ttyS0 for SOL debugging
-set cons console=tty0 console=ttyS0,115200n8 earlyprintk=serial,ttyS0,115200 earlycon=ttyS0,115200
+# Force serial output: prefer ttyS0, also enable ttyS1 and VGA
+set cons console=tty0 console=ttyS1,115200n8 console=ttyS0,115200n8 earlycon=ttyS0,115200 earlyprintk=serial,ttyS0,115200
 
-# Boot from ISO over HTTP (works with do_urlmount override)
-set common_args boot=casper netboot=url url=${iso_url} ip=dhcp autoinstall ds=nocloud-net\;s=${seed_url}
+# Escape ';' in iPXE with '\;'
+# Boot parameters based on Brokkr's working approach
+set common_args boot=casper netboot=url nfsboot=auto ro network ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
 
 :boot
 echo Booting Ubuntu 22.04 LTS with ${cons}
-kernel ${casper}/vmlinuz ${common_args} initrd=initrd.img initrd=autoinstall-overlay.img ${cons} ---
-initrd ${casper}/initrd initrd.img
-initrd https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/autoinstall-overlay.img autoinstall-overlay.img
+kernel ${casper_vmlinuz} ${common_args} ${cons} ---
+initrd ${casper_initrd}
+initrd https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-22.04/autoinstall-overlay.img
 boot
 

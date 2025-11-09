@@ -3,7 +3,9 @@
 # For use with Hydra Host bare-metal provisioning
 
 set iso_url  https://releases.ubuntu.com/plucky/ubuntu-25.04-live-server-amd64.iso
-set casper   https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-25.04/casper
+# Use media.githubusercontent.com for LFS files (initrd), raw for non-LFS (vmlinuz)
+set casper_vmlinuz https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-25.04/casper/vmlinuz
+set casper_initrd  https://media.githubusercontent.com/media/jjziets/hydrahost/main/ubuntu-25.04/casper/initrd
 # NoCloud seed (MUST end with /)
 set seed_url https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-25.04/autoinstall/
 
@@ -32,8 +34,8 @@ goto boot
 
 :boot
 echo Booting Ubuntu 25.04 with ${cons}
-kernel ${casper}/vmlinuz ${common_args} ${cons} ---
-initrd ${casper}/initrd
+kernel ${casper_vmlinuz} ${common_args} ${cons} ---
+initrd ${casper_initrd}
 initrd https://raw.githubusercontent.com/jjziets/hydrahost/main/ubuntu-25.04/autoinstall-overlay.img
 boot || goto menu
 
