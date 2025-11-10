@@ -31,12 +31,14 @@ if [ -z "${IPMI_HOST}" ] || [ -z "${IPMI_USER}" ] || [ -z "${IPMI_PASS}" ]; then
 fi
 
 # IPMI interface and security settings (override with env vars if needed)
-SOL_INTERFACE="${SOL_INTERFACE:-lan}"                 # lanplus (IPMI 2.0) or lan (IPMI 1.5)
-IPMI_CIPHER_SUITE="${IPMI_CIPHER_SUITE:-0}"           # Cipher suite for lanplus (ignored for lan)
+SOL_INTERFACE="${SOL_INTERFACE:-lanplus}"             # lanplus (IPMI 2.0) or lan (IPMI 1.5)
+IPMI_CIPHER_SUITE="${IPMI_CIPHER_SUITE:-3}"           # Cipher suite for lanplus (3 is most compatible)
+IPMI_CIPHER_LIST="${IPMI_CIPHER_LIST:-3 17 12 8 0}"   # Fallback probe order
 IPMI_PRIVILEGE_LEVEL="${IPMI_PRIVILEGE_LEVEL:-ADMINISTRATOR}"
+SOL_RETRY_DELAY="${SOL_RETRY_DELAY:-5}"               # Seconds to wait before reconnecting
 
-# Serial port settings (defaults match ttyS0 @ 115200)
-SOL_COM_PORT="${SOL_COM_PORT:-0}"     # 0 = ttyS0 / COM1, 1 = ttyS1 / COM2
+# Serial port settings (defaults match ttyS1 @ 115200)
+SOL_COM_PORT="${SOL_COM_PORT:-1}"     # 0 = ttyS0 / COM1, 1 = ttyS1 / COM2
 SOL_BAUD_RATE="${SOL_BAUD_RATE:-115200}"
 
 # Log file location (in repo root)
@@ -57,6 +59,7 @@ echo -e "IPMI Host: ${IPMI_HOST}"
 echo -e "Log file:  ${LOG_FILE}"
 echo -e "Serial:    ttyS${SOL_COM_PORT} @ ${SOL_BAUD_RATE}"
 echo -e "Interface: ${SOL_INTERFACE}  Cipher: ${IPMI_CIPHER_SUITE}  Privilege: ${IPMI_PRIVILEGE_LEVEL}"
+echo -e "Auto-reconnect: Enabled (${SOL_RETRY_DELAY}s delay)"
 echo ""
 
 # Check if ipmitool is installed
@@ -87,6 +90,22 @@ ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LE
   -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
 sleep 1
 
+# Probe cipher suites if lanplus negotiation fails
+if [ "${SOL_INTERFACE}" = "lanplus" ]; then
+  if ! ipmitool -I lanplus -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" -N 3 -R 1 \
+        -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" mc info >/dev/null 2>&1; then
+    echo -e "${YELLOW}Current cipher ${IPMI_CIPHER_SUITE} failed. Probing alternative cipher suites...${NC}"
+    for c in ${IPMI_CIPHER_LIST}; do
+      if ipmitool -I lanplus -C "$c" -L "${IPMI_PRIVILEGE_LEVEL}" -N 3 -R 1 \
+           -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" mc info >/dev/null 2>&1; then
+        IPMI_CIPHER_SUITE="$c"
+        echo -e "${GREEN}Selected working cipher suite: ${IPMI_CIPHER_SUITE}${NC}"
+        break
+      fi
+    done
+  fi
+fi
+
 echo -e "${YELLOW}Configuring SOL parameters...${NC}"
 ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" \
   -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol set baud "${SOL_BAUD_RATE}" >/dev/null 2>&1 || \
@@ -102,11 +121,39 @@ echo -e "${YELLOW}Tip: In another terminal, run:${NC}"
 echo -e "  tail -f ${LOG_FILE}"
 echo ""
 
-# Activate SOL and write to log file
-# Also display to console
-ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" \
-  -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol activate | tee -a "${LOG_FILE}"
+# Connection loop - automatically reconnect if SOL session drops
+CONNECTION_COUNT=0
+while true; do
+    CONNECTION_COUNT=$((CONNECTION_COUNT + 1))
+    
+    if [ $CONNECTION_COUNT -gt 1 ]; then
+        echo "" | tee -a "${LOG_FILE}"
+        echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] SOL session ended. Reconnecting in ${SOL_RETRY_DELAY}s... (attempt #${CONNECTION_COUNT})${NC}" | tee -a "${LOG_FILE}"
+        echo "" | tee -a "${LOG_FILE}"
+        sleep "${SOL_RETRY_DELAY}"
+        
+        # Deactivate any stale sessions before reconnecting
+        ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" \
+          -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol deactivate 2>/dev/null
+        sleep 1
+    fi
+    
+    # Activate SOL and write to log file
+    # Also display to console
+    ipmitool -I "${SOL_INTERFACE}" -C "${IPMI_CIPHER_SUITE}" -L "${IPMI_PRIVILEGE_LEVEL}" \
+      -H "${IPMI_HOST}" -U "${IPMI_USER}" -P "${IPMI_PASS}" sol activate 2>&1 | tee -a "${LOG_FILE}"
+    
+    # Check exit status
+    EXIT_CODE=$?
+    
+    # If we get here, SOL session ended
+    if [ $EXIT_CODE -ne 0 ]; then
+        echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] SOL activation failed with exit code: ${EXIT_CODE}${NC}" | tee -a "${LOG_FILE}"
+    fi
+    
+    # Continue loop to reconnect (unless interrupted by CTRL+C via trap)
+done
 
-# Cleanup on normal exit
+# Cleanup on normal exit (only reached via CTRL+C trap)
 cleanup
 

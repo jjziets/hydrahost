@@ -23,13 +23,13 @@ choose --timeout 10000 --default s1 sel || goto menu
 set common_args boot=casper netboot=url nfsboot=auto ro network ip=dhcp url=${iso_url} autoinstall ds=nocloud-net\;s=${seed_url}
 
 :s0
-set cons console=ttyS0,115200n8
+set cons console=tty0 console=ttyS0,115200n8 earlycon=ttyS0,115200 earlyprintk=serial,ttyS0,115200
 goto boot
 :s1
-set cons console=ttyS1,115200n8
+set cons console=tty0 console=ttyS1,115200n8 earlycon=ttyS1,115200 earlyprintk=serial,ttyS1,115200
 goto boot
 :vga
-set cons ---
+set cons console=tty0
 goto boot
 
 :boot
